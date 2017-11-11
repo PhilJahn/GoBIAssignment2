@@ -7,6 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -131,15 +133,133 @@ public class ReadSimulator {
 		String brk = "\n";
 		char sep = ':';
 		char sip = '|';
+		char at = '@';
+		char pl = '+';
+		char mi = '-';
+		char co = ',';
 		StringBuilder fwBuilder = new StringBuilder("");
 		StringBuilder rwBuilder = new StringBuilder("");
-		StringBuilder infoBuilder = new StringBuilder("");
+		StringBuilder infoBuilder = new StringBuilder("readid\tchr\tgene\ttranscript\tt_fw_regvec\tt_rw_regvec\tfw_regvec\trw_regvec\tfw_mut\trw_mut");
+		
+		int counter = 0;
+		
+		char[] qual = new char[readLength];
+		Arrays.fill(qual, 'I');
+		
+		for(String ids: order){
+			int n = readcount.get(ids);
+			String[] idSplit = ids.split("|");
+			String geneid = idSplit[0];
+			String transid = idSplit[1];
+			Gene curGene = geneSet.get(geneid);
+			String chr = curGene.getChr();
+			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaPath, transid);
+			
+			for(Fragment frag: frags){
+				fwBuilder.append(at);
+				fwBuilder.append(counter);
+				fwBuilder.append(brk);
+				fwBuilder.append(frag.getFWread());
+				fwBuilder.append(brk);
+				fwBuilder.append(pl);
+				fwBuilder.append(counter);
+				fwBuilder.append(brk);
+				fwBuilder.append(qual);
+				fwBuilder.append(brk);
+				
+				rwBuilder.append(at);
+				rwBuilder.append(counter);
+				rwBuilder.append(brk);
+				rwBuilder.append(frag.getRWread());
+				rwBuilder.append(brk);
+				rwBuilder.append(pl);
+				rwBuilder.append(counter);
+				rwBuilder.append(brk);
+				rwBuilder.append(qual);
+				rwBuilder.append(brk);
+				
+				Region fwReg = frag.getFWReg();
+				Region rwReg = frag.getRWReg();
+				ArrayList<Region> fwGene = frag.getFWGene();
+				ArrayList<Region> rwGene = frag.getRWGene(); 
+				
+				int[] fwMut = frag.getFWMut();
+				Arrays.sort(fwMut);
+				int[] rwMut = frag.getRWMut();
+				Arrays.sort(rwMut);
+				
+				infoBuilder.append(counter);
+				infoBuilder.append(tab);
+				infoBuilder.append(chr);
+				infoBuilder.append(tab);
+				infoBuilder.append(geneid);
+				infoBuilder.append(tab);
+				infoBuilder.append(transid);
+				infoBuilder.append(tab);
+				infoBuilder.append(fwReg.getStart());
+				infoBuilder.append(mi);
+				infoBuilder.append(fwReg.getStop());
+				infoBuilder.append(tab);
+				infoBuilder.append(rwReg.getStart());
+				infoBuilder.append(mi);
+				infoBuilder.append(rwReg.getStop());
+				infoBuilder.append(tab);
+				
+				fwGene.sort(new StartRegionComparator());
+				infoBuilder.append(fwGene.get(0).getStart());
+				infoBuilder.append(mi);
+				infoBuilder.append(fwGene.get(0).getStop());
+				for(int i = 1; i < fwGene.size(); i++ ){
+					Region curIntron = fwGene.get(i);
+					infoBuilder.append(sip);
+					infoBuilder.append(curIntron.getStart());
+					infoBuilder.append(mi);
+					infoBuilder.append(curIntron.getStop());
+				}
+				infoBuilder.append(tab);
+				
+				rwGene.sort(new StartRegionComparator());
+				infoBuilder.append(rwGene.get(0).getStart());
+				infoBuilder.append(mi);
+				infoBuilder.append(rwGene.get(0).getStop());
+				for(int i = 1; i < rwGene.size(); i++ ){
+					Region curIntron = rwGene.get(i);
+					infoBuilder.append(sip);
+					infoBuilder.append(curIntron.getStart());
+					infoBuilder.append(mi);
+					infoBuilder.append(curIntron.getStop());
+				}		
+				infoBuilder.append(tab);
+				
+				
+				if(fwMut.length > 0){
+					infoBuilder.append(fwMut[0]);
+					for(int i = 1; i < fwMut.length; i++ ){
+						infoBuilder.append(co);
+						infoBuilder.append(fwMut[i]);
+					}						
+				}
+				infoBuilder.append(tab);
+				
+				if(rwMut.length > 0){
+					infoBuilder.append(rwMut[0]);
+					for(int i = 1; i < rwMut.length; i++ ){
+						infoBuilder.append(co);
+						infoBuilder.append(rwMut[i]);
+					}						
+				}
+				infoBuilder.append(tab);
+				infoBuilder.append(brk);
+			}
+			counter ++;
+		}
 		
 		return new String[]{fwBuilder.toString(),rwBuilder.toString(),infoBuilder.toString()};
 	}
 	
 	public void getContent(){
 		readcountsReader();
+		fidxReader();
 		gtfReader();
 	}
 	
@@ -180,7 +300,13 @@ public class ReadSimulator {
 	        BufferedReader br = new BufferedReader (new FileReader(file));
 	        String line;
 	        while ((line = br.readLine()) != null){
-	        	String[] lineSplit = line.split("\t");	        	
+	        	String[] lineSplit = line.split("\t");
+	        	int length = Integer.parseInt(lineSplit[2]);
+	        	int start = Integer.parseInt(lineSplit[1]);
+	        	int cont = Integer.parseInt(lineSplit[3]);
+	        	int linele = Integer.parseInt(lineSplit[4]);
+	        	Index i = new Index(start,length,linele,cont);
+	        	fastaindex.put(lineSplit[0], i);
 	        }
 	        br.close();	
 	    	
@@ -188,8 +314,6 @@ public class ReadSimulator {
 			e.printStackTrace();
 		}
 	}
-	
-	
 	
 	private void gtfReader(){
 		Path filePath = Paths.get(gtfPath);
@@ -200,25 +324,45 @@ public class ReadSimulator {
 	        String line;
 	        Gene curGene = null;
 	        Transcript curTrans = null;
-	        ArrayList<Transcript> unknownGene = new ArrayList<Transcript>();
-	        ArrayList<Region> unknownTranscript = new ArrayList<Region>();
+
 	        while ((line = br.readLine()) != null){
 	        	String[] lineSplit = line.split("\t");
 	        	if(lineSplit.length >= 8){
 		        	String[] attrSplit = lineSplit[8].split(";");
-		        	HashMap<String,String> attr;      	
+		        	HashMap<String,String> attr;
+		        	
 		        	if(lineSplit[2].equals("CDS")){
 		        		attr = getAttributes(attrSplit);
-		        		String super_super_id = attr.get("gene_id");
-		        		String gene_name = attr.get("gene_name");
-		        		String super_id = attr.get("transcript_id");
-		        		String id = attr.get("protein_id");
-		        		String type = lineSplit[1];
-		        		char strand = lineSplit[6].charAt(0);
+		        		String gene_id = attr.get("gene_id");
+		        		String trans_id = attr.get("transcript_id");
 		        		String chr = lineSplit[0];
 		        		int start = Integer.parseInt(lineSplit[3]);
 		        		int stop = Integer.parseInt(lineSplit[4]);
 		        		Region cds;
+		        		if(curGene.getId().equals(gene_id)){
+		        			if(curTrans.getId().equals(trans_id)){
+		        				cds = new Region(start,stop);
+		        				curTrans.add(cds);
+		        			}
+		        			else if(transIds.contains(trans_id)){
+		        				Transcript trans = new Transcript(start,stop,trans_id);
+		        				cds = new Region(start,stop);
+		        				trans.add(cds);
+		        				curGene.add(trans);
+		        				curTrans = trans;
+		        			}
+		        		}
+		        		else if(geneIds.contains(gene_id) && trans_id.contains(trans_id)){
+		        			Index index = fastaindex.get(chr);
+		        			Gene gene = new Gene(start,stop,gene_id,chr,index,trans_id);
+		        			geneSet.put(gene_id.hashCode(),gene);
+		        			curGene = gene;
+	        				Transcript trans = new Transcript(start,stop,trans_id);
+	        				cds = new Region(start,stop);
+	        				trans.add(cds);
+	        				curGene.add(trans);
+	        				curTrans = trans;
+		        		}
 		        	}
 	        	}
 	        }
@@ -227,6 +371,14 @@ public class ReadSimulator {
 	    } catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	class StartRegionComparator implements Comparator<Region>
+	{
+	    public int compare(Region x1, Region x2)
+	    {
+	        return x1.getStart() - x2.getStart();
+	    }
 	}
 
 }

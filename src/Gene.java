@@ -1,4 +1,5 @@
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 
@@ -9,18 +10,21 @@ public class Gene extends Region{
 	private String id;
 	
 	private String chr;
+	private Index index;
 	
-	public Gene(int x1, int x2, String id, String chr){
+	public Gene(int x1, int x2, String id, String chr, Index index){
 		super(x1,x2);
 		this.id = id;
 		this.chr = chr;
+		this.index = index;
 		transcripts = new HashMap <String,Transcript>();
 	}
 
-	public Gene(int x1, int x2, String id, String chr, String tid){
+	public Gene(int x1, int x2, String id, String chr, Index index, String tid){
 		super(x1,x2);
 		this.id = id;
 		this.chr = chr;
+		this.index = index;
 		transcripts = new HashMap <String,Transcript>();
 		transcripts.put(tid,new Transcript(x1,x2,tid));
 	}
@@ -41,6 +45,14 @@ public class Gene extends Region{
 				transcripts.remove(k);
 			}
 		}
+	}
+	
+	public String getId(){
+		return id;
+	}
+	
+	public String getChr(){
+		return chr;
 	}
 	
 	public int hashCode(){
@@ -65,6 +77,12 @@ public class Gene extends Region{
 	    {
 	        return x1.getStart() - x2.getStart();
 	    }
+	}
+
+	public ArrayList<Fragment> generateReads(int readLength, double mutRate, int mean, int sd, String fastaPath,
+			String transid) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }
 
