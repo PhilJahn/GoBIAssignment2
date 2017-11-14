@@ -1,6 +1,8 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
 import java.util.SortedSet;
@@ -9,27 +11,18 @@ import java.util.stream.IntStream;
 import AugmentedTree.IntervalTree;
 
 public class Transcript extends RegionVector{
-	
-	private IntervalTree<Region> introns; 
+	private IntervalTree<IntronRegion> introns; 
 	private String id;
+	
+	private StringBuilder cdsSeq;
+	private StringBuilder seq;
 
 	public Transcript(int start, int stop, String id)  {
 		super(start, stop);
 		this.id = id;
 	}
 	
-	
-	public boolean setIntrons(){
-		if(this.getRegionsTree().size() > 1){
-			introns = this.invert().getRegionsTree();
-			return true;
-		}
-		else{
-			return false;
-		}
-	}
-	
-	public IntervalTree<Region> getIntrons(){
+	public IntervalTree<IntronRegion> getIntrons(){
 		return introns;
 	}
 	
@@ -140,5 +133,48 @@ public class Transcript extends RegionVector{
 	public String toString(){
 		return "Transcript: " + super.toString() + " " + id;
 	}
+
+	public void setSeq(StringBuilder transcriptSeq) {
+		this.seq = transcriptSeq;
+		
+	}
+	
+	public void setIntrons(){
+		IntervalTree<IntronRegion> result = new IntervalTree<IntronRegion>();
+		ArrayList<Region> regionsArray = this.getRegions();
+		regionsArray.sort(new StartRegionComparator());
+		HashSet<IntronRegion> resultSet = new HashSet<IntronRegion>();
+		int start;
+		int stop;
+		for(int i = 1; i < regionsArray.size(); i++){
+			Region last = regionsArray.get(i-1);
+			Region cur = regionsArray.get(i);
+			start = last.getStop();
+			stop = cur.getStart();
+			int pos = start +1 - this.getStart();
+			resultSet.add(new IntronRegion(pos,start+1,stop));
+		}
+		result.addAll(resultSet);
+		
+	}
+	
+	public void setCDS(){
+		ArrayList<Region> regionsArray = this.getRegions();
+		regionsArray.sort(new StartRegionComparator());
+		String seqString = seq.toString();
+		cdsSeq = new StringBuilder();		
+		for(Region region : regionsArray){
+			cdsSeq.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()));
+		}
+	}
+	
+	class StartRegionComparator implements Comparator<Region>
+	{
+	    public int compare(Region x1, Region x2)
+	    {
+	        return x1.getStart() - x2.getStart();
+	    }
+	}
+	
 	
 }

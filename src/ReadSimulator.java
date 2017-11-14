@@ -2,6 +2,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +44,10 @@ public class ReadSimulator {
 				readcountsPath = args[i+1];
 				i++; 
 			}
+			else if(args[i].equals("-fasta")){
+				fastaPath = args[i+1];
+				i++; 
+			}
 			else if(args[i].equals("-fidx")){
 				fidxPath = args[i+1];
 				i++; 
@@ -57,6 +62,19 @@ public class ReadSimulator {
 			}
 		}
 		
+		RandomAccessFile fastaAccess = null;
+		Path pathFasta = Paths.get(fastaPath);
+		File fasta = pathFasta.toFile();
+		try {
+			fastaAccess = new RandomAccessFile(fasta, "r");
+			fastaAccess.seek(56);
+			String line = fastaAccess.readLine();
+			line += fastaAccess.readLine();
+			System.out.println(line);
+		}
+		catch(Exception e){
+			
+		}
 		if( readLength == -1 || mean == -1  || sd == -1 || mutRate == -1 || readcountsPath.equals("") || fastaPath.equals("") || fidxPath.equals("") || gtfPath.equals("") ||outputPath.equals("") ){
 			System.out.println("Usage Info:\n-length <Read Length>\n-frlength <mean> -SD <SD>\n-muattionrate <mutation rate>\n-readcounts <filepath for read counts>\n-fasta <filepath for FASTA>\n-fidx <filepath for FASTA index>\n-gtf <filepath for GTF>\n-od <output directory>");
 		}
@@ -146,6 +164,13 @@ public class ReadSimulator {
 		char[] qual = new char[readLength];
 		Arrays.fill(qual, 'I');
 		
+		RandomAccessFile fastaAccess = null;
+		Path pathFasta = Paths.get(fastaPath);
+		File fasta = pathFasta.toFile();
+		try {
+			fastaAccess = new RandomAccessFile(fasta, "r");
+			
+		
 		for(String ids: order){
 			int n = readcount.get(ids);
 			String[] idSplit = ids.split("|");
@@ -153,7 +178,7 @@ public class ReadSimulator {
 			String transid = idSplit[1];
 			Gene curGene = geneSet.get(geneid);
 			String chr = curGene.getChr();
-			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaPath, transid);
+			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaAccess, transid, n);
 			
 			for(Fragment frag: frags){
 				fwBuilder.append(at);
@@ -253,7 +278,10 @@ public class ReadSimulator {
 			}
 			counter ++;
 		}
-		
+			fastaAccess.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		return new String[]{fwBuilder.toString(),rwBuilder.toString(),infoBuilder.toString()};
 	}
 	

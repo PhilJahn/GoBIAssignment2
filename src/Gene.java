@@ -1,4 +1,6 @@
 
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -79,9 +81,22 @@ public class Gene extends Region{
 	    }
 	}
 
-	public ArrayList<Fragment> generateReads(int readLength, double mutRate, int mean, int sd, String fastaPath,
-			String transid) {
-		// TODO Auto-generated method stub
+	public ArrayList<Fragment> generateReads(int readLength, double mutRate, int mean, int sd, RandomAccessFile fastaAccess, String transid, int n) throws Exception {
+		Transcript trans = transcripts.get(transid);
+		int start = trans.getStart();
+		int stop = trans.getStop();
+		int fastastart = index.getStart() + start;
+		int fastaLength = stop-start;
+		int lines = ((fastastart%index.getLength()+ fastaLength)/index.getCont())+1;
+		fastaAccess.seek(fastastart);
+		
+		StringBuilder transcriptSeq = new StringBuilder();
+		
+		for( int i = 0; i < lines; i++){
+			transcriptSeq.append(fastaAccess.readLine());
+		}
+		
+		trans.setSeq(transcriptSeq);
 		return null;
 	}
 }
