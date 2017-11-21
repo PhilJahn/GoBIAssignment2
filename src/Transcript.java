@@ -1,3 +1,4 @@
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -7,6 +8,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.SortedSet;
 import java.util.stream.IntStream;
+import org.apache.commons.math3.distribution.NormalDistribution;
 
 import AugmentedTree.IntervalTree;
 
@@ -38,14 +40,14 @@ public class Transcript extends RegionVector{
 		return id;
 	}
 	
-	public int[] getMutPos(int fraglength, double mutRate){
+	public static int[] getMutPos(int fraglength, double mutRate){
 		double nd =  (fraglength*mutRate)/100.0;
 		int n = (int) Math.round(nd);
 		int[] mutpos = new Random().ints(0, fraglength).distinct().limit(n).toArray();
 		return mutpos;
 	}
 	
-	public StringBuilder mutate(int[] mutPos, StringBuilder frag){
+	public static StringBuilder mutate(int[] mutPos, StringBuilder frag){
 		String fragString = frag.toString();
 		Random r = new Random();
 		int rInt;
@@ -101,7 +103,7 @@ public class Transcript extends RegionVector{
 		return frag;
 	}
 	
-	public StringBuilder revComp(StringBuilder frag){
+	public static StringBuilder revComp(StringBuilder frag){
 		StringBuilder revComp = new StringBuilder();
 		String revFrag = frag.reverse().toString();
 		for(int i = 0; i < revFrag.length(); i++){
@@ -185,12 +187,49 @@ public class Transcript extends RegionVector{
 		this.exons = result;
 	}
 	
+	
+	
 	class StartRegionComparator implements Comparator<Region>
 	{
 	    public int compare(Region x1, Region x2)
 	    {
 	        return x1.getStart() - x2.getStart();
 	    }
+	}
+
+
+
+	public ArrayList<Fragment> makeFragments(int readLength, double mutRate, int mean, int sd, int n) {
+		ArrayList<Fragment> results = new ArrayList<Fragment>();
+		
+		NormalDistribution nd = new NormalDistribution(mean,sd);
+		
+		Random r = new Random();
+		
+		for(int i = 0; i < n; i++){
+			int fraglength = (int) Math.round(nd.sample());
+			int startPos = r.nextInt(cdsSeq.length() - fraglength);
+			StringBuilder fragseq = new StringBuilder(cdsSeq.substring(startPos, startPos + fraglength));
+			
+			int[] mutPos = getMutPos(fraglength,mutRate);
+			fragseq = mutate(mutPos, fragseq);
+			
+			String fragseqString = fragseq.toString();
+			
+			String fwread = fragseqString.substring(0, readLength);
+			StringBuilder rwread = new StringBuilder(fragseqString.substring(fragseqString.length()-readLength));
+			rwread = revComp(rwread);
+			
+			
+			
+			Arrays.sort(mutPos);
+			int j = 0;
+			while(mutPos[j] < readLength){
+				
+				j++;
+			}
+		}
+		return results;
 	}
 	
 	

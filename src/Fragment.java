@@ -2,8 +2,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 
 public class Fragment {
-	private StringBuilder fwread;
-	private StringBuilder rwread;
+	private String fwread;
+	private String rwread;
 	
 	private int[] fwMut;
 	private int[] rwMut;
@@ -15,7 +15,7 @@ public class Fragment {
 	
 	
 	
-	public Fragment(StringBuilder fwread, StringBuilder rwread, int[] fwmut, int[] rwmut, Region fwReg, Region rwReg, ArrayList<Region> fwGene, ArrayList<Region> rwGene ){
+	public Fragment(String fwread, String rwread, int[] fwmut, int[] rwmut, Region fwReg, Region rwReg, ArrayList<Region> fwGene, ArrayList<Region> rwGene ){
 		this.fwread = fwread;
 		this.rwread = rwread;
 		
@@ -28,11 +28,11 @@ public class Fragment {
 		this.rwGene = rwGene;		
 	}
 	
-	public StringBuilder getFWread(){
+	public String getFWread(){
 		return fwread;
 	}
 	
-	public StringBuilder getRWread(){
+	public String getRWread(){
 		return rwread;
 	}
 	
