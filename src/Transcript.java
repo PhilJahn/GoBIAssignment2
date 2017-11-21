@@ -11,19 +11,20 @@ import java.util.stream.IntStream;
 import AugmentedTree.IntervalTree;
 
 public class Transcript extends RegionVector{
-	private IntervalTree<IntronRegion> introns; 
+//	private IntervalTree<IntronRegion> introns; 
+	private IntervalTree<ExonRegion> exons; 
 	private String id;
 	
-	private StringBuilder cdsSeq;
-	private StringBuilder seq;
+	private String cdsSeq;
+	private String seq;
 
 	public Transcript(int start, int stop, String id)  {
 		super(start, stop);
 		this.id = id;
 	}
 	
-	public IntervalTree<IntronRegion> getIntrons(){
-		return introns;
+	public IntervalTree<ExonRegion> getExons(){
+		return exons;
 	}
 	
 	public boolean equals(Object o){
@@ -135,37 +136,53 @@ public class Transcript extends RegionVector{
 	}
 
 	public void setSeq(StringBuilder transcriptSeq) {
-		this.seq = transcriptSeq;
-		
+		this.seq = transcriptSeq.toString();
+//		this.setIntrons();
+		this.setCDS();
 	}
 	
-	public void setIntrons(){
-		IntervalTree<IntronRegion> result = new IntervalTree<IntronRegion>();
-		ArrayList<Region> regionsArray = this.getRegions();
-		regionsArray.sort(new StartRegionComparator());
-		HashSet<IntronRegion> resultSet = new HashSet<IntronRegion>();
-		int start;
-		int stop;
-		for(int i = 1; i < regionsArray.size(); i++){
-			Region last = regionsArray.get(i-1);
-			Region cur = regionsArray.get(i);
-			start = last.getStop();
-			stop = cur.getStart();
-			int pos = start +1 - this.getStart();
-			resultSet.add(new IntronRegion(pos,start+1,stop));
-		}
-		result.addAll(resultSet);
-		
-	}
+//	public void setIntrons(){
+//		IntervalTree<IntronRegion> result = new IntervalTree<IntronRegion>();
+//		ArrayList<Region> regionsArray = this.getRegions();
+//		regionsArray.sort(new StartRegionComparator());
+//		HashSet<IntronRegion> resultSet = new HashSet<IntronRegion>();
+//		int start;
+//		int stop;
+//		for(int i = 1; i < regionsArray.size(); i++){
+//			Region last = regionsArray.get(i-1);
+//			Region cur = regionsArray.get(i);
+//			start = last.getStop();
+//			stop = cur.getStart();
+//			int pos = start +1 - this.getStart();
+//			resultSet.add(new IntronRegion(pos,start+1,stop));
+//		}
+//		result.addAll(resultSet);
+//		
+//	}
 	
 	public void setCDS(){
+		IntervalTree<ExonRegion> result = new IntervalTree<ExonRegion>();
+		HashSet<ExonRegion> resultSet = new HashSet<ExonRegion>();
 		ArrayList<Region> regionsArray = this.getRegions();
 		regionsArray.sort(new StartRegionComparator());
 		String seqString = seq.toString();
-		cdsSeq = new StringBuilder();		
+		StringBuilder cdsSeqBuilder = new StringBuilder();
+		int tstart = this.getStart();
+		int etstart;
+		int etstop;
+		int egstart;
+		int egstop;
 		for(Region region : regionsArray){
-			cdsSeq.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()));
+			etstart= region.getStart()-tstart;
+			etstop = region.getStop()-tstart;
+			egstart = region.getStart();
+			egstop = region.getStop();
+			resultSet.add(new ExonRegion(etstart,etstop,egstart,egstop));
+			cdsSeqBuilder.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()));
 		}
+		this.cdsSeq = cdsSeqBuilder.toString();
+		result.addAll(resultSet);
+		this.exons = result;
 	}
 	
 	class StartRegionComparator implements Comparator<Region>
