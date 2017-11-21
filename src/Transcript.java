@@ -216,18 +216,95 @@ public class Transcript extends RegionVector{
 			
 			String fragseqString = fragseq.toString();
 			
-			String fwread = fragseqString.substring(0, readLength);
-			StringBuilder rwread = new StringBuilder(fragseqString.substring(fragseqString.length()-readLength));
-			rwread = revComp(rwread);
+			int fwstart = startPos + 0;
+			int fwstop = startPos + readLength;
+			Region fwReg = new Region(fwstart,fwstop);
 			
+			int rwstart = startPos + fraglength-readLength;
+			int rwstop = startPos + fraglength;
+			Region rwReg = new Region(rwstart, rwstop);
+			
+			
+			
+			String fwread = fragseqString.substring(0, readLength);
+			StringBuilder rwread = new StringBuilder(fragseqString.substring(fraglength-readLength));
+			rwread = revComp(rwread);
+			String rwreadString = rwread.toString();
 			
 			
 			Arrays.sort(mutPos);
-			int j = 0;
-			while(mutPos[j] < readLength){
-				
+			int j = -1;
+			while(mutPos[j+1] < readLength){
 				j++;
 			}
+			
+			int[] fwMut = new int[j];
+			for(int k = 0; k <= j; k++){
+				fwMut[k] = mutPos[k];
+			}
+			
+			j = mutPos.length;
+			while(mutPos[j-1] > fraglength-readLength){
+				j--;
+			}
+			
+			int[] rwMut = new int[mutPos.length-j];
+			for(int k = j; k < mutPos.length; k++){
+				rwMut[k-j] = mutPos[k] - (fraglength-readLength);
+			}
+			
+			ArrayList<Region> fwGene = new ArrayList<Region>();	
+			ArrayList<ExonRegion> fwExons = new ArrayList<ExonRegion>();
+			fwExons = exons.getIntervalsIntersecting(fwstart, fwstop, fwExons);
+			fwExons.sort(new StartRegionComparator());
+			if(fwExons.size() > 1){
+				ExonRegion curExon = fwExons.get(0);
+				int startExonStart = fwstart-curExon.getStart() + curExon.getExonStart();
+				fwGene.add(new Region(startExonStart,curExon.getExonStop()));
+				
+				for(int h = 1; h < fwExons.size()-1; h ++){
+					curExon = fwExons.get(h);
+					fwGene.add(new Region(curExon.getExonStart(), curExon.getExonStop()));
+				}
+				
+				curExon = fwExons.get(fwExons.size()-1);
+				int startExonStop = fwstop-curExon.getStart() + curExon.getExonStart();
+				fwGene.add(new Region(curExon.getExonStart(),startExonStop));
+			}
+			else{
+				ExonRegion curExon = fwExons.get(0);
+				int startExonStart = fwstart-curExon.getStart() + curExon.getExonStart();
+				int startExonStop = fwstop-curExon.getStart() + curExon.getExonStart();
+				fwGene.add(new Region(startExonStart,startExonStop));
+			}
+			
+			ArrayList<Region> rwGene = new ArrayList<Region>();	
+			ArrayList<ExonRegion> rwExons = new ArrayList<ExonRegion>();
+			rwExons = exons.getIntervalsIntersecting(rwstart, rwstop,rwExons);
+			rwExons.sort(new StartRegionComparator());
+			if(rwExons.size() > 1){
+				ExonRegion curExon = rwExons.get(0);
+				int startExonStart = rwstart-curExon.getStart() + curExon.getExonStart();
+				rwGene.add(new Region(startExonStart,curExon.getExonStop()));
+				
+				for(int h = 1; h < rwExons.size()-1; h ++){
+					curExon = rwExons.get(h);
+					rwGene.add(new Region(curExon.getExonStart(), curExon.getExonStop()));
+				}
+				
+				curExon = rwExons.get(rwExons.size()-1);
+				int startExonStop = rwstop-curExon.getStart() + curExon.getExonStart();
+				rwGene.add(new Region(curExon.getExonStart(),startExonStop));
+			}
+			else{
+				ExonRegion curExon = rwExons.get(0);
+				int startExonStart = rwstart-curExon.getStart() + curExon.getExonStart();
+				int startExonStop = rwstop-curExon.getStart() + curExon.getExonStart();
+				rwGene.add(new Region(startExonStart,startExonStop));
+			}
+			
+			results.add(new Fragment(fwread, rwreadString, fwMut, rwMut, fwReg, rwReg, fwGene, rwGene));
+			
 		}
 		return results;
 	}
