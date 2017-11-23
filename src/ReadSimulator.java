@@ -112,7 +112,7 @@ public class ReadSimulator {
 	private String fidxPath;
 	private String gtfPath;
 	
-	private HashMap<Integer,Gene> geneSet;
+	private HashMap<String,Gene> geneSet;
 	private HashMap<String,Index> fastaindex;
 	private HashMap<String,Integer> readcount;
 	private ArrayList<String> order;
@@ -173,10 +173,16 @@ public class ReadSimulator {
 		
 		for(String ids: order){
 			int n = readcount.get(ids);
-			String[] idSplit = ids.split("|");
+			String[] idSplit = ids.split("\\|");
 			String geneid = idSplit[0];
 			String transid = idSplit[1];
 			Gene curGene = geneSet.get(geneid);
+			System.out.println(geneSet.toString());
+			System.out.println("KeySet"+geneSet.keySet());
+			System.out.println("GeneID " + geneid);
+			System.out.println("ids " + ids);
+			System.out.println("idSplit " + idSplit.toString());
+			
 			String chr = curGene.getChr();
 			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaAccess, transid, n);
 			
@@ -235,11 +241,11 @@ public class ReadSimulator {
 				infoBuilder.append(mi);
 				infoBuilder.append(fwGene.get(0).getStop());
 				for(int i = 1; i < fwGene.size(); i++ ){
-					Region curIntron = fwGene.get(i);
+					Region curExon = fwGene.get(i);
 					infoBuilder.append(sip);
-					infoBuilder.append(curIntron.getStart());
+					infoBuilder.append(curExon.getStart());
 					infoBuilder.append(mi);
-					infoBuilder.append(curIntron.getStop());
+					infoBuilder.append(curExon.getStop());
 				}
 				infoBuilder.append(tab);
 				
@@ -248,11 +254,11 @@ public class ReadSimulator {
 				infoBuilder.append(mi);
 				infoBuilder.append(rwGene.get(0).getStop());
 				for(int i = 1; i < rwGene.size(); i++ ){
-					Region curIntron = rwGene.get(i);
+					Region curExon = rwGene.get(i);
 					infoBuilder.append(sip);
-					infoBuilder.append(curIntron.getStart());
+					infoBuilder.append(curExon.getStart());
 					infoBuilder.append(mi);
-					infoBuilder.append(curIntron.getStop());
+					infoBuilder.append(curExon.getStop());
 				}		
 				infoBuilder.append(tab);
 				
@@ -329,8 +335,8 @@ public class ReadSimulator {
 	        String line;
 	        while ((line = br.readLine()) != null){
 	        	String[] lineSplit = line.split("\t");
-	        	int length = Integer.parseInt(lineSplit[2]);
-	        	int start = Integer.parseInt(lineSplit[1]);
+	        	long length = Long.parseLong(lineSplit[2]);
+	        	long start = Long.parseLong(lineSplit[1]);
 	        	int cont = Integer.parseInt(lineSplit[3]);
 	        	int linele = Integer.parseInt(lineSplit[4]);
 	        	Index i = new Index(start,length,linele,cont);
@@ -345,7 +351,7 @@ public class ReadSimulator {
 	
 	private void gtfReader(){
 		Path filePath = Paths.get(gtfPath);
-		geneSet = new HashMap<Integer,Gene>();
+		geneSet = new HashMap<String,Gene>();
 	    try {
 	    	File file = filePath.toFile();
 	        BufferedReader br = new BufferedReader (new FileReader(file));
@@ -367,7 +373,7 @@ public class ReadSimulator {
 		        		int start = Integer.parseInt(lineSplit[3]);
 		        		int stop = Integer.parseInt(lineSplit[4]);
 		        		Region cds;
-		        		if(curGene.getId().equals(gene_id)){
+		        		if(curGene != null && curGene.getId().equals(gene_id)){
 		        			if(curTrans.getId().equals(trans_id)){
 		        				cds = new Region(start,stop);
 		        				curTrans.add(cds);
@@ -383,7 +389,7 @@ public class ReadSimulator {
 		        		else if(geneIds.contains(gene_id) && trans_id.contains(trans_id)){
 		        			Index index = fastaindex.get(chr);
 		        			Gene gene = new Gene(start,stop,gene_id,chr,index,trans_id);
-		        			geneSet.put(gene_id.hashCode(),gene);
+		        			geneSet.put(gene_id,gene);
 		        			curGene = gene;
 	        				Transcript trans = new Transcript(start,stop,trans_id);
 	        				cds = new Region(start,stop);

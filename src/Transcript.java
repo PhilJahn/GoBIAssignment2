@@ -208,6 +208,13 @@ public class Transcript extends RegionVector{
 		
 		for(int i = 0; i < n; i++){
 			int fraglength = (int) Math.round(nd.sample());
+			
+			while(fraglength < readLength){
+				fraglength = (int) Math.round(nd.sample());
+			}
+			
+			System.out.println("i: " + i + " fraglength:" + fraglength);
+			
 			int startPos = r.nextInt(cdsSeq.length() - fraglength);
 			StringBuilder fragseq = new StringBuilder(cdsSeq.substring(startPos, startPos + fraglength));
 			

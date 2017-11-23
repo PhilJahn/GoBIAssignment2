@@ -85,9 +85,17 @@ public class Gene extends Region{
 		Transcript trans = transcripts.get(transid);
 		int start = trans.getStart();
 		int stop = trans.getStop();
-		int fastastart = index.getStart() + start;
+		long fastastart = index.getStart() + start;
 		int fastaLength = stop-start;
-		int lines = ((fastastart%index.getLength()+ fastaLength)/index.getCont())+1;
+		System.out.println("FastaStart: " + fastastart);
+		System.out.println("FastaLength: " + fastaLength);
+		System.out.println("Index Line: " + index.getLine());
+		System.out.println("Index Cont: " + index.getCont());
+		long modulo = fastastart%index.getLine();
+		System.out.println("Modulo: " + modulo);
+		
+		long lines = ((fastastart%index.getLine()+ fastaLength)/index.getCont())+1;
+		System.out.println(lines);
 		fastaAccess.seek(fastastart);
 		
 		StringBuilder transcriptSeq = new StringBuilder();
@@ -97,7 +105,7 @@ public class Gene extends Region{
 		}
 		
 		trans.setSeq(transcriptSeq);
-		return null;
+		return trans.makeFragments(readLength, mutRate, mean, sd, n );
 	}
 }
 
