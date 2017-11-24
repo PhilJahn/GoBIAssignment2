@@ -181,7 +181,7 @@ public class ReadSimulator {
 			String[] idSplit = ids.split("\\|");
 			String geneid = idSplit[0];
 			String transid = idSplit[1];
-			System.out.println(counter + " " + geneid + " " + transid);
+//			System.out.println(counter + " " + geneid + " " + transid);
 			Gene curGene = geneSet.get(geneid);
 //			System.out.println(geneSet.toString());
 //			System.out.println("KeySet"+geneSet.keySet());
@@ -289,14 +289,14 @@ public class ReadSimulator {
 				infoBuilder.append(brk);
 				counter ++;
 				
-				fw.add(fwBuilder.toString());
-				fwBuilder.setLength(0);
-				rw.add(rwBuilder.toString());
-				rwBuilder.setLength(0);
-				info.add(infoBuilder.toString());
-				infoBuilder.setLength(0);
 			}
 			
+			fw.add(fwBuilder.toString());
+			fwBuilder.setLength(0);
+			rw.add(rwBuilder.toString());
+			rwBuilder.setLength(0);
+			info.add(infoBuilder.toString());
+			infoBuilder.setLength(0);
 			
 		}
 			fastaAccess.close();

@@ -110,6 +110,7 @@ public class Gene extends Region{
 //		System.out.println("Transcript Seq Length " + transcriptSeq.length());
 		
 		trans.setSeq(transcriptSeq);
+		transcriptSeq.setLength(0);
 		return trans.makeFragments(readLength, mutRate, mean, sd, n );
 	}
 }

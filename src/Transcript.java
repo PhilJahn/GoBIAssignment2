@@ -141,6 +141,8 @@ public class Transcript extends RegionVector{
 		this.seq = transcriptSeq.toString();
 //		this.setIntrons();
 		this.setCDS();
+		
+//		System.out.println("Seq Length: " + seq.length() + " CDS Length: "+  cdsSeq.length());
 	}
 	
 //	public void setIntrons(){
@@ -211,6 +213,8 @@ public class Transcript extends RegionVector{
 		
 		Random r = new Random();
 		
+		StringBuilder fragseq = new StringBuilder();
+		StringBuilder rwread = new StringBuilder();
 //		n = 1;
 //		mutRate = 5.0;
 		
@@ -228,7 +232,7 @@ public class Transcript extends RegionVector{
 			int startPos = r.nextInt(cdsSeq.length() - fraglength);
 //			startPos= 145;
 //			System.out.println("startPos: " + startPos);
-			StringBuilder fragseq = new StringBuilder(cdsSeq.substring(startPos, startPos + fraglength));
+			fragseq.append(cdsSeq.substring(startPos, startPos + fraglength));
 //			System.out.println("FragSeq: " + fragseq.toString() + " Length: " + fragseq.toString().length());
 			int[] mutPos = getMutPos(fraglength,mutRate);
 			
@@ -252,7 +256,7 @@ public class Transcript extends RegionVector{
 			
 //			System.out.println("FWRead: "+ fwread + " Length: " + fwread.length());
 			
-			StringBuilder rwread = new StringBuilder(fragseqString.substring(fraglength-readLength));
+			rwread.append(fragseqString.substring(fraglength-readLength));
 //			System.out.println("RWRead1: "+ rwread + " Length: " + rwread.length());
 			rwread = revComp(rwread);
 			String rwreadString = rwread.toString();
@@ -344,6 +348,8 @@ public class Transcript extends RegionVector{
 			
 			results.add(new Fragment(fwread, rwreadString, fwMut, rwMut, fwReg, rwReg, fwGene, rwGene));
 			
+			fragseq.setLength(0);
+			rwread.setLength(0);
 		}
 		return results;
 	}
