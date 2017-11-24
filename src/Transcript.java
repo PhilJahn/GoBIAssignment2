@@ -57,46 +57,46 @@ public class Transcript extends RegionVector{
 			mut = fragString.charAt(i);
 			if(mut == 'A'){
 				if(rInt < 50){
-					frag.replace(i, i, "T");
+					frag.replace(i, i+1, "T");
 				}
 				else if(rInt < 75){
-					frag.replace(i, i, "C");					
+					frag.replace(i, i+1, "C");					
 				}
 				else{
-					frag.replace(i, i, "G");
+					frag.replace(i, i+1, "G");
 				}
 			}
 			else if(mut == 'T'){
 				if(rInt < 50){
-					frag.replace(i, i, "A");
+					frag.replace(i, i+1, "A");
 				}
 				else if(rInt < 75){
-					frag.replace(i, i, "C");					
+					frag.replace(i, i+1, "C");					
 				}
 				else{
-					frag.replace(i, i, "G");
+					frag.replace(i, i+1, "G");
 				}
 			}
 			else if(mut == 'C'){
 				if(rInt < 50){
-					frag.replace(i, i, "G");
+					frag.replace(i, i+1, "G");
 				}
 				else if(rInt < 75){
-					frag.replace(i, i, "A");					
+					frag.replace(i, i+1, "A");					
 				}
 				else{
-					frag.replace(i, i, "T");
+					frag.replace(i, i+1, "T");
 				}
 			}
 			else{
 				if(rInt < 50){
-					frag.replace(i, i, "C");
+					frag.replace(i, i+1, "C");
 				}
 				else if(rInt < 75){
-					frag.replace(i, i, "A");					
+					frag.replace(i, i+1, "A");					
 				}
 				else{
-					frag.replace(i, i, "T");
+					frag.replace(i, i+1, "T");
 				}
 			}
 		}
@@ -174,13 +174,18 @@ public class Transcript extends RegionVector{
 		int etstop;
 		int egstart;
 		int egstop;
+		
+//		System.out.println("Seq Length: " + seqString.length());
+//		System.out.println("Trans Length: " + this.length());
+//		System.out.println(this.getRegionsTree().toTreeString());
+				
 		for(Region region : regionsArray){
-			etstart= region.getStart()-tstart;
-			etstop = region.getStop()-tstart;
+			etstart= cdsSeqBuilder.length();
+			etstop = region.getStop() - region.getStart() + etstart;
 			egstart = region.getStart();
 			egstop = region.getStop();
 			resultSet.add(new ExonRegion(etstart,etstop,egstart,egstop));
-			cdsSeqBuilder.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()));
+			cdsSeqBuilder.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()+1));
 		}
 		this.cdsSeq = cdsSeqBuilder.toString();
 		result.addAll(resultSet);
@@ -206,19 +211,29 @@ public class Transcript extends RegionVector{
 		
 		Random r = new Random();
 		
+//		n = 1;
+//		mutRate = 5.0;
+		
 		for(int i = 0; i < n; i++){
 			int fraglength = (int) Math.round(nd.sample());
 			
-			while(fraglength < readLength){
+			while(fraglength < readLength || fraglength >= cdsSeq.length()){
 				fraglength = (int) Math.round(nd.sample());
 			}
 			
-			System.out.println("i: " + i + " fraglength:" + fraglength);
+//			fraglength = 122;
+			
+//			System.out.println("i: " + i + " fraglength:" + fraglength);
 			
 			int startPos = r.nextInt(cdsSeq.length() - fraglength);
+//			startPos= 145;
+//			System.out.println("startPos: " + startPos);
 			StringBuilder fragseq = new StringBuilder(cdsSeq.substring(startPos, startPos + fraglength));
-			
+//			System.out.println("FragSeq: " + fragseq.toString() + " Length: " + fragseq.toString().length());
 			int[] mutPos = getMutPos(fraglength,mutRate);
+			
+//			System.out.println(Arrays.toString(mutPos));
+			Arrays.sort(mutPos);
 			fragseq = mutate(mutPos, fragseq);
 			
 			String fragseqString = fragseq.toString();
@@ -234,36 +249,51 @@ public class Transcript extends RegionVector{
 			
 			
 			String fwread = fragseqString.substring(0, readLength);
+			
+//			System.out.println("FWRead: "+ fwread + " Length: " + fwread.length());
+			
 			StringBuilder rwread = new StringBuilder(fragseqString.substring(fraglength-readLength));
+//			System.out.println("RWRead1: "+ rwread + " Length: " + rwread.length());
 			rwread = revComp(rwread);
 			String rwreadString = rwread.toString();
+//			System.out.println("RWRead: "+ rwreadString + " Length: " + rwreadString.length());
 			
-			
-			Arrays.sort(mutPos);
 			int j = -1;
-			while(mutPos[j+1] < readLength){
+			while(j+1 < mutPos.length && mutPos[j+1] < readLength){
 				j++;
 			}
 			
-			int[] fwMut = new int[j];
-			for(int k = 0; k <= j; k++){
-				fwMut[k] = mutPos[k];
+			int[] fwMut= new int[0];
+			if(j != -1){
+				fwMut = new int[j+1];
+				for(int k = 0; k <= j; k++){
+					fwMut[k] = mutPos[k];
+				}
 			}
 			
 			j = mutPos.length;
-			while(mutPos[j-1] > fraglength-readLength){
+			while(j > 0 && mutPos[j-1] > fraglength-readLength){
 				j--;
 			}
 			
-			int[] rwMut = new int[mutPos.length-j];
-			for(int k = j; k < mutPos.length; k++){
-				rwMut[k-j] = mutPos[k] - (fraglength-readLength);
+			int[] rwMut= new int[0];
+			if(j != mutPos.length){
+				rwMut = new int[mutPos.length-j];
+				for(int k = j; k < mutPos.length; k++){
+					rwMut[k-j] = fraglength-1 - mutPos[k];
+				}
 			}
+			
+//			System.out.println("CDS: "+  cdsSeq + " Length: " + cdsSeq.length());
+//			System.out.println(exons.toTreeString());
 			
 			ArrayList<Region> fwGene = new ArrayList<Region>();	
 			ArrayList<ExonRegion> fwExons = new ArrayList<ExonRegion>();
 			fwExons = exons.getIntervalsIntersecting(fwstart, fwstop, fwExons);
 			fwExons.sort(new StartRegionComparator());
+			
+//			System.out.println("fwExons: " + fwExons.toString());
+			
 			if(fwExons.size() > 1){
 				ExonRegion curExon = fwExons.get(0);
 				int startExonStart = fwstart-curExon.getStart() + curExon.getExonStart();
@@ -282,6 +312,8 @@ public class Transcript extends RegionVector{
 				ExonRegion curExon = fwExons.get(0);
 				int startExonStart = fwstart-curExon.getStart() + curExon.getExonStart();
 				int startExonStop = fwstop-curExon.getStart() + curExon.getExonStart();
+//				System.out.println(startExonStart);
+				
 				fwGene.add(new Region(startExonStart,startExonStop));
 			}
 			

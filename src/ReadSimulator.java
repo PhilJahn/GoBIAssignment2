@@ -62,39 +62,33 @@ public class ReadSimulator {
 			}
 		}
 		
-		RandomAccessFile fastaAccess = null;
-		Path pathFasta = Paths.get(fastaPath);
-		File fasta = pathFasta.toFile();
-		try {
-			fastaAccess = new RandomAccessFile(fasta, "r");
-			fastaAccess.seek(56);
-			String line = fastaAccess.readLine();
-			line += fastaAccess.readLine();
-			System.out.println(line);
-		}
-		catch(Exception e){
-			
-		}
+//		RandomAccessFile fastaAccess = null;
+//		Path pathFasta = Paths.get(fastaPath);
+//		File fasta = pathFasta.toFile();
+//		try {
+//			fastaAccess = new RandomAccessFile(fasta, "r");
+//			fastaAccess.seek(56);
+//			String line = fastaAccess.readLine();
+//			line += fastaAccess.readLine();
+//			System.out.println(line);
+//		}
+//		catch(Exception e){
+//			
+//		}
 		if( readLength == -1 || mean == -1  || sd == -1 || mutRate == -1 || readcountsPath.equals("") || fastaPath.equals("") || fidxPath.equals("") || gtfPath.equals("") ||outputPath.equals("") ){
 			System.out.println("Usage Info:\n-length <Read Length>\n-frlength <mean> -SD <SD>\n-muattionrate <mutation rate>\n-readcounts <filepath for read counts>\n-fasta <filepath for FASTA>\n-fidx <filepath for FASTA index>\n-gtf <filepath for GTF>\n-od <output directory>");
 		}
 		else{
 			ReadSimulator rs = new ReadSimulator(readLength, mean, sd, mutRate, readcountsPath, fastaPath, fidxPath, gtfPath);
-			String[] outputs = rs.getSimulatedReads();
-			ArrayList<String> fwList = new ArrayList<String>();
-			fwList.add(outputs[0]);
-			ArrayList<String> rwList = new ArrayList<String>();
-			rwList.add(outputs[1]);
-			ArrayList<String> infoList = new ArrayList<String>();
-			infoList.add(outputs[2]);
+			ArrayList<ArrayList<String>> outputs = rs.getSimulatedReads();
 			
-			Path fwfilePath = Paths.get(outputPath.concat("fw.fastaq"));
-			Path rwfilePath = Paths.get(outputPath.concat("rw.fastaq"));
+			Path fwfilePath = Paths.get(outputPath.concat("fw.fastq"));
+			Path rwfilePath = Paths.get(outputPath.concat("rw.fastq"));
 			Path infofilePath = Paths.get(outputPath.concat("read.mappinginfo"));
 			try {
-				Files.write(fwfilePath, fwList, Charset.forName("UTF-8"));
-				Files.write(rwfilePath, rwList, Charset.forName("UTF-8"));
-				Files.write(infofilePath, infoList, Charset.forName("UTF-8"));
+				Files.write(fwfilePath, outputs.get(0), Charset.forName("UTF-8"));
+				Files.write(rwfilePath, outputs.get(1), Charset.forName("UTF-8"));
+				Files.write(infofilePath, outputs.get(2), Charset.forName("UTF-8"));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -146,7 +140,7 @@ public class ReadSimulator {
 		return attrMap;
 	}
 	
-	public String[] getSimulatedReads(){
+	public ArrayList<ArrayList<String>> getSimulatedReads(){
 		String tab = "\t";
 		String brk = "\n";
 		char sep = ':';
@@ -159,6 +153,13 @@ public class ReadSimulator {
 		StringBuilder rwBuilder = new StringBuilder("");
 		StringBuilder infoBuilder = new StringBuilder("readid\tchr\tgene\ttranscript\tt_fw_regvec\tt_rw_regvec\tfw_regvec\trw_regvec\tfw_mut\trw_mut");
 		
+		ArrayList<String> fw = new ArrayList<String>();
+		ArrayList<String> rw = new ArrayList<String>();
+		ArrayList<String> info = new ArrayList<String>();
+		
+		info.add(infoBuilder.toString());
+		infoBuilder.setLength(0);
+		
 		int counter = 0;
 		
 		char[] qual = new char[readLength];
@@ -167,6 +168,10 @@ public class ReadSimulator {
 		RandomAccessFile fastaAccess = null;
 		Path pathFasta = Paths.get(fastaPath);
 		File fasta = pathFasta.toFile();
+//		System.out.println(order.toString());
+		
+//		order.remove(1);
+//		System.out.println(order.toString());
 		try {
 			fastaAccess = new RandomAccessFile(fasta, "r");
 			
@@ -176,12 +181,13 @@ public class ReadSimulator {
 			String[] idSplit = ids.split("\\|");
 			String geneid = idSplit[0];
 			String transid = idSplit[1];
+			System.out.println(counter + " " + geneid + " " + transid);
 			Gene curGene = geneSet.get(geneid);
-			System.out.println(geneSet.toString());
-			System.out.println("KeySet"+geneSet.keySet());
-			System.out.println("GeneID " + geneid);
-			System.out.println("ids " + ids);
-			System.out.println("idSplit " + idSplit.toString());
+//			System.out.println(geneSet.toString());
+//			System.out.println("KeySet"+geneSet.keySet());
+//			System.out.println("GeneID " + geneid);
+//			System.out.println("ids " + ids);
+//			System.out.println("idSplit " + idSplit.toString());
 			
 			String chr = curGene.getChr();
 			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaAccess, transid, n);
@@ -281,14 +287,30 @@ public class ReadSimulator {
 				}
 				infoBuilder.append(tab);
 				infoBuilder.append(brk);
+				counter ++;
+				
+				fw.add(fwBuilder.toString());
+				fwBuilder.setLength(0);
+				rw.add(rwBuilder.toString());
+				rwBuilder.setLength(0);
+				info.add(infoBuilder.toString());
+				infoBuilder.setLength(0);
 			}
-			counter ++;
+			
+			
 		}
 			fastaAccess.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		return new String[]{fwBuilder.toString(),rwBuilder.toString(),infoBuilder.toString()};
+		
+		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
+		
+		result.add(fw);
+		result.add(rw);
+		result.add(info);
+		
+		return result;
 	}
 	
 	public void getContent(){
@@ -335,8 +357,8 @@ public class ReadSimulator {
 	        String line;
 	        while ((line = br.readLine()) != null){
 	        	String[] lineSplit = line.split("\t");
-	        	long length = Long.parseLong(lineSplit[2]);
-	        	long start = Long.parseLong(lineSplit[1]);
+	        	long length = Long.parseLong(lineSplit[1]);
+	        	long start = Long.parseLong(lineSplit[2]);
 	        	int cont = Integer.parseInt(lineSplit[3]);
 	        	int linele = Integer.parseInt(lineSplit[4]);
 	        	Index i = new Index(start,length,linele,cont);
@@ -365,23 +387,23 @@ public class ReadSimulator {
 		        	String[] attrSplit = lineSplit[8].split(";");
 		        	HashMap<String,String> attr;
 		        	
-		        	if(lineSplit[2].equals("CDS")){
+		        	if(lineSplit[2].equals("exon")){
 		        		attr = getAttributes(attrSplit);
 		        		String gene_id = attr.get("gene_id");
 		        		String trans_id = attr.get("transcript_id");
 		        		String chr = lineSplit[0];
 		        		int start = Integer.parseInt(lineSplit[3]);
 		        		int stop = Integer.parseInt(lineSplit[4]);
-		        		Region cds;
+		        		Region exon;
 		        		if(curGene != null && curGene.getId().equals(gene_id)){
 		        			if(curTrans.getId().equals(trans_id)){
-		        				cds = new Region(start,stop);
-		        				curTrans.add(cds);
+		        				exon = new Region(start,stop);
+		        				curTrans.add(exon);
 		        			}
 		        			else if(transIds.contains(trans_id)){
 		        				Transcript trans = new Transcript(start,stop,trans_id);
-		        				cds = new Region(start,stop);
-		        				trans.add(cds);
+		        				exon = new Region(start,stop);
+		        				trans.add(exon);
 		        				curGene.add(trans);
 		        				curTrans = trans;
 		        			}
@@ -392,8 +414,8 @@ public class ReadSimulator {
 		        			geneSet.put(gene_id,gene);
 		        			curGene = gene;
 	        				Transcript trans = new Transcript(start,stop,trans_id);
-	        				cds = new Region(start,stop);
-	        				trans.add(cds);
+	        				exon = new Region(start,stop);
+	        				trans.add(exon);
 	        				curGene.add(trans);
 	        				curTrans = trans;
 		        		}

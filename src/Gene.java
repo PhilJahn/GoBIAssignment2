@@ -85,24 +85,29 @@ public class Gene extends Region{
 		Transcript trans = transcripts.get(transid);
 		int start = trans.getStart();
 		int stop = trans.getStop();
-		long fastastart = index.getStart() + start;
+		long fastastart = index.getStart() + start + start/60;
 		int fastaLength = stop-start;
-		System.out.println("FastaStart: " + fastastart);
-		System.out.println("FastaLength: " + fastaLength);
-		System.out.println("Index Line: " + index.getLine());
-		System.out.println("Index Cont: " + index.getCont());
-		long modulo = fastastart%index.getLine();
-		System.out.println("Modulo: " + modulo);
+//		System.out.println("Chrom Start: " + index.getStart());
+//		System.out.println("Trans Start: " + start);
+//		System.out.println("FastaStart: " + fastastart);
+//		
+//		System.out.println("FastaLength: " + fastaLength);
+//		System.out.println("Index Line: " + index.getLine());
+//		System.out.println("Index Cont: " + index.getCont());
+		long modulo = start%index.getLine();
+//		System.out.println("Modulo: " + modulo);
 		
-		long lines = ((fastastart%index.getLine()+ fastaLength)/index.getCont())+1;
-		System.out.println(lines);
-		fastaAccess.seek(fastastart);
+		long lines = ((modulo+ fastaLength)/index.getCont())+1;
+//		System.out.println("Line Count " + lines);
+		fastaAccess.seek(fastastart-1);
 		
 		StringBuilder transcriptSeq = new StringBuilder();
 		
-		for( int i = 0; i < lines; i++){
+		for( int i = 0; i <= lines; i++){
 			transcriptSeq.append(fastaAccess.readLine());
 		}
+		
+//		System.out.println("Transcript Seq Length " + transcriptSeq.length());
 		
 		trans.setSeq(transcriptSeq);
 		return trans.makeFragments(readLength, mutRate, mean, sd, n );

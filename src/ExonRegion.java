@@ -26,4 +26,7 @@ public class ExonRegion extends Region {
 		return estop;
 	}
 	
+	public String toString(){
+		return "[" + this.getStart() + ";" + this.getStop() + "]("+ this.length() +") -> [" + estart + ";" + estop + "](" + (estop-estart) +")";
+	}
 }
