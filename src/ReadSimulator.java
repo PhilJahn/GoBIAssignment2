@@ -1,6 +1,7 @@
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.Charset;
@@ -80,18 +81,21 @@ public class ReadSimulator {
 		}
 		else{
 			ReadSimulator rs = new ReadSimulator(readLength, mean, sd, mutRate, readcountsPath, fastaPath, fidxPath, gtfPath);
-			ArrayList<ArrayList<String>> outputs = rs.getSimulatedReads();
-			
-			Path fwfilePath = Paths.get(outputPath.concat("fw.fastq"));
-			Path rwfilePath = Paths.get(outputPath.concat("rw.fastq"));
-			Path infofilePath = Paths.get(outputPath.concat("read.mappinginfo"));
-			try {
-				Files.write(fwfilePath, outputs.get(0), Charset.forName("UTF-8"));
-				Files.write(rwfilePath, outputs.get(1), Charset.forName("UTF-8"));
-				Files.write(infofilePath, outputs.get(2), Charset.forName("UTF-8"));
-			} catch (IOException e) {
-				e.printStackTrace();
+//			ArrayList<ArrayList<String>> outputs = rs.getSimulatedReads();
+//			
+//			Path fwfilePath = Paths.get(outputPath.concat("fw.fastq"));
+//			Path rwfilePath = Paths.get(outputPath.concat("rw.fastq"));
+//			Path infofilePath = Paths.get(outputPath.concat("read.mappinginfo"));
+
+			if(outputPath.charAt(outputPath.length()-1) != '/'){
+				outputPath = outputPath.concat("/");
 			}
+			String fwfilePath = outputPath.concat("fw.fastq");
+			String rwfilePath = outputPath.concat("rw.fastq");
+			String infofilePath = outputPath.concat("read.mappinginfo");
+			
+			rs.getSimulatedReads(fwfilePath,rwfilePath,infofilePath);
+
 		}
 //		long stopTime = System.currentTimeMillis();
 //		System.out.println("Input:" + (stopTime-startTime));	
@@ -140,7 +144,7 @@ public class ReadSimulator {
 		return attrMap;
 	}
 	
-	public ArrayList<ArrayList<String>> getSimulatedReads(){
+	public void getSimulatedReads(String fwfilePath, String rwfilePath, String infofilePath){
 		String tab = "\t";
 		String brk = "\n";
 		char sep = ':';
@@ -151,14 +155,17 @@ public class ReadSimulator {
 		char co = ',';
 		StringBuilder fwBuilder = new StringBuilder("");
 		StringBuilder rwBuilder = new StringBuilder("");
-		StringBuilder infoBuilder = new StringBuilder("readid\tchr\tgene\ttranscript\tt_fw_regvec\tt_rw_regvec\tfw_regvec\trw_regvec\tfw_mut\trw_mut");
+		StringBuilder infoBuilder = new StringBuilder("readid\tchr\tgene\ttranscript\tt_fw_regvec\tt_rw_regvec\tfw_regvec\trw_regvec\tfw_mut\trw_mut\n");
 		
-		ArrayList<String> fw = new ArrayList<String>();
-		ArrayList<String> rw = new ArrayList<String>();
-		ArrayList<String> info = new ArrayList<String>();
+		StringBuilder transSeq = new StringBuilder();
 		
-		info.add(infoBuilder.toString());
-		infoBuilder.setLength(0);
+//		ArrayList<String> fw = new ArrayList<String>();
+//		ArrayList<String> rw = new ArrayList<String>();
+//		ArrayList<String> info = new ArrayList<String>();
+		
+//		info.add(infoBuilder.toString());
+//		infoBuilder.setLength(0);
+		
 		
 		int counter = 0;
 		
@@ -174,6 +181,14 @@ public class ReadSimulator {
 //		System.out.println(order.toString());
 		try {
 			fastaAccess = new RandomAccessFile(fasta, "r");
+			FileWriter fwWriter = new FileWriter(fwfilePath,false);
+			FileWriter rwWriter = new FileWriter(rwfilePath,false);
+			FileWriter infoWriter = new FileWriter(infofilePath,false);
+			
+			fwWriter.write(fwBuilder.toString());
+			rwWriter.write(rwBuilder.toString());
+			infoWriter.write(infoBuilder.toString());
+			infoBuilder.setLength(0);
 			
 		
 		for(String ids: order){
@@ -190,7 +205,17 @@ public class ReadSimulator {
 //			System.out.println("idSplit " + idSplit.toString());
 			
 			String chr = curGene.getChr();
-			ArrayList<Fragment> frags = curGene.generateReads(readLength,mutRate, mean, sd,fastaAccess, transid, n);
+			
+			Transcript curTrans = curGene.getTranscript(transid);
+			Index index = curGene.getIndex();
+			
+			int start = curTrans.getStart();
+			int stop = curTrans.getStop();
+			
+			transSeq = getFASTA(start,stop,index,fastaAccess);
+			transSeq = curTrans.setCDS(transSeq);
+			
+			ArrayList<Fragment> frags = curTrans.makeFragments(readLength, mutRate, mean, sd, n, transSeq);
 			
 			for(Fragment frag: frags){
 				fwBuilder.append(at);
@@ -291,14 +316,31 @@ public class ReadSimulator {
 				
 			}
 			
-			fw.add(fwBuilder.toString());
+			fwWriter.append(fwBuilder.toString());
+			rwWriter.append(rwBuilder.toString());
+			infoWriter.append(infoBuilder.toString());
+			
+			transSeq.setLength(0);
+//			fw.add(fwBuilder.toString());
 			fwBuilder.setLength(0);
-			rw.add(rwBuilder.toString());
+//			rw.add(rwBuilder.toString());
 			rwBuilder.setLength(0);
-			info.add(infoBuilder.toString());
+//			info.add(infoBuilder.toString());
 			infoBuilder.setLength(0);
 			
+			
+			
+//			Files.write(fwfilePath, fw, Charset.forName("UTF-8"));
+//			Files.write(rwfilePath, rw, Charset.forName("UTF-8"));
+//			Files.write(infofilePath, info, Charset.forName("UTF-8"));
+//			
+//			fw.clear();
+//			rw.clear();
+//			info.clear();
 		}
+			fwWriter.close();
+			rwWriter.close();
+			infoWriter.close();
 			fastaAccess.close();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -306,11 +348,11 @@ public class ReadSimulator {
 		
 		ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>();
 		
-		result.add(fw);
-		result.add(rw);
-		result.add(info);
+//		result.add(fw);
+//		result.add(rw);
+//		result.add(info);
 		
-		return result;
+//		return result;
 	}
 	
 	public void getContent(){
@@ -428,6 +470,33 @@ public class ReadSimulator {
 			e.printStackTrace();
 		}
 	}
+	
+	public StringBuilder getFASTA(int start, int stop, Index index, RandomAccessFile fastaAccess) throws IOException{
+		long fastastart = index.getStart() + start + start/60;
+		int fastaLength = stop-start;
+//		System.out.println("Chrom Start: " + index.getStart());
+//		System.out.println("Trans Start: " + start);
+//		System.out.println("FastaStart: " + fastastart);
+//		
+//		System.out.println("FastaLength: " + fastaLength);
+//		System.out.println("Index Line: " + index.getLine());
+//		System.out.println("Index Cont: " + index.getCont());
+		long modulo = start%index.getLine();
+//		System.out.println("Modulo: " + modulo);
+		
+		long lines = ((modulo+ fastaLength)/index.getCont())+1;
+//		System.out.println("Line Count " + lines);
+		fastaAccess.seek(fastastart-1);
+		
+		StringBuilder fastaSeq = new StringBuilder();
+		
+		for( int i = 0; i <= lines; i++){
+			fastaSeq.append(fastaAccess.readLine());
+		}
+		
+		return fastaSeq;
+	}
+	
 	
 	class StartRegionComparator implements Comparator<Region>
 	{

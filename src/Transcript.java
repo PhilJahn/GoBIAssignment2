@@ -17,17 +17,17 @@ public class Transcript extends RegionVector{
 	private IntervalTree<ExonRegion> exons; 
 	private String id;
 	
-	private String cdsSeq;
-	private String seq;
+//	private String cdsSeq;
+//	private String seq;
 
 	public Transcript(int start, int stop, String id)  {
 		super(start, stop);
 		this.id = id;
 	}
 	
-	public IntervalTree<ExonRegion> getExons(){
-		return exons;
-	}
+//	public IntervalTree<ExonRegion> getExons(){
+//		return exons;
+//	}
 	
 	public boolean equals(Object o){
 		if(o.getClass() == this.getClass()){
@@ -137,13 +137,13 @@ public class Transcript extends RegionVector{
 		return "Transcript: " + super.toString() + " " + id;
 	}
 
-	public void setSeq(StringBuilder transcriptSeq) {
-		this.seq = transcriptSeq.toString();
-//		this.setIntrons();
-		this.setCDS();
-		
-//		System.out.println("Seq Length: " + seq.length() + " CDS Length: "+  cdsSeq.length());
-	}
+//	public String setSeq(StringBuilder transcriptSeq) {
+//		String seq = transcriptSeq.toString();
+////		this.setIntrons();
+//		return setCDS(seq);
+//		
+////		System.out.println("Seq Length: " + seq.length() + " CDS Length: "+  cdsSeq.length());
+//	}
 	
 //	public void setIntrons(){
 //		IntervalTree<IntronRegion> result = new IntervalTree<IntronRegion>();
@@ -164,7 +164,7 @@ public class Transcript extends RegionVector{
 //		
 //	}
 	
-	public void setCDS(){
+	public StringBuilder setCDS(StringBuilder seq){
 		IntervalTree<ExonRegion> result = new IntervalTree<ExonRegion>();
 		HashSet<ExonRegion> resultSet = new HashSet<ExonRegion>();
 		ArrayList<Region> regionsArray = this.getRegions();
@@ -186,12 +186,13 @@ public class Transcript extends RegionVector{
 			etstop = region.getStop() - region.getStart() + etstart;
 			egstart = region.getStart();
 			egstop = region.getStop();
-			resultSet.add(new ExonRegion(etstart,etstop,egstart,egstop));
+			resultSet.add(new ExonRegion(etstart,etstop,egstart,egstop+1));
 			cdsSeqBuilder.append(seqString.substring(region.getStart()-this.getStart(), region.getStop()-this.getStart()+1));
 		}
-		this.cdsSeq = cdsSeqBuilder.toString();
 		result.addAll(resultSet);
 		this.exons = result;
+		seq.setLength(0);
+		return cdsSeqBuilder;
 	}
 	
 	
@@ -206,7 +207,11 @@ public class Transcript extends RegionVector{
 
 
 
-	public ArrayList<Fragment> makeFragments(int readLength, double mutRate, int mean, int sd, int n) {
+	public ArrayList<Fragment> makeFragments(int readLength, double mutRate, int mean, int sd, int n, StringBuilder cdsSeqBuilder) {
+		
+		String cdsSeq = cdsSeqBuilder.toString();
+		cdsSeqBuilder.setLength(0);
+		
 		ArrayList<Fragment> results = new ArrayList<Fragment>();
 		
 		NormalDistribution nd = new NormalDistribution(mean,sd);
@@ -216,7 +221,7 @@ public class Transcript extends RegionVector{
 		StringBuilder fragseq = new StringBuilder();
 		StringBuilder rwread = new StringBuilder();
 //		n = 1;
-//		mutRate = 5.0;
+//		mutRate = 0.0;
 		
 		for(int i = 0; i < n; i++){
 			int fraglength = (int) Math.round(nd.sample());
@@ -225,12 +230,12 @@ public class Transcript extends RegionVector{
 				fraglength = (int) Math.round(nd.sample());
 			}
 			
-//			fraglength = 122;
+//			fraglength = 119;
 			
 //			System.out.println("i: " + i + " fraglength:" + fraglength);
 			
 			int startPos = r.nextInt(cdsSeq.length() - fraglength);
-//			startPos= 145;
+//			startPos= 810;
 //			System.out.println("startPos: " + startPos);
 			fragseq.append(cdsSeq.substring(startPos, startPos + fraglength));
 //			System.out.println("FragSeq: " + fragseq.toString() + " Length: " + fragseq.toString().length());
