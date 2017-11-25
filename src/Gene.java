@@ -13,19 +13,22 @@ public class Gene extends Region{
 	
 	private String chr;
 	private Index index;
+	private char str;
 	
-	public Gene(int x1, int x2, String id, String chr, Index index){
+	public Gene(int x1, int x2, String id, String chr, char str, Index index){
 		super(x1,x2);
 		this.id = id;
 		this.chr = chr;
+		this.str = str;
 		this.index = index;
 		transcripts = new HashMap <String,Transcript>();
 	}
 
-	public Gene(int x1, int x2, String id, String chr, Index index, String tid){
+	public Gene(int x1, int x2, String id, String chr, char str, Index index, String tid){
 		super(x1,x2);
 		this.id = id;
 		this.chr = chr;
+		this.str = str;
 		this.index = index;
 		transcripts = new HashMap <String,Transcript>();
 		transcripts.put(tid,new Transcript(x1,x2,tid));
@@ -47,6 +50,10 @@ public class Gene extends Region{
 				transcripts.remove(k);
 			}
 		}
+	}
+	
+	public char getStrand(){
+		return str;
 	}
 	
 	public String getId(){

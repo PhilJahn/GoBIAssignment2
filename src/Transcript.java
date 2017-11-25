@@ -207,10 +207,18 @@ public class Transcript extends RegionVector{
 
 
 
-	public ArrayList<Fragment> makeFragments(int readLength, double mutRate, int mean, int sd, int n, StringBuilder cdsSeqBuilder) {
+	public ArrayList<Fragment> makeFragments(int readLength, double mutRate, int mean, int sd, int n, StringBuilder cdsSeqBuilder, boolean reverse) {
 		
 		String cdsSeq = cdsSeqBuilder.toString();
 		cdsSeqBuilder.setLength(0);
+		
+		int l = cdsSeq.length();
+		
+//		System.out.println(cdsSeq);
+		
+//		System.out.println(exons.toTreeString());
+		
+//		System.out.println(l);
 		
 		ArrayList<Fragment> results = new ArrayList<Fragment>();
 		
@@ -219,7 +227,7 @@ public class Transcript extends RegionVector{
 		Random r = new Random();
 		
 		StringBuilder fragseq = new StringBuilder();
-		StringBuilder rwread = new StringBuilder();
+		StringBuilder reverseread = new StringBuilder();
 //		n = 1;
 //		mutRate = 0.0;
 		
@@ -241,6 +249,8 @@ public class Transcript extends RegionVector{
 //			System.out.println("FragSeq: " + fragseq.toString() + " Length: " + fragseq.toString().length());
 			int[] mutPos = getMutPos(fraglength,mutRate);
 			
+//			mutPos = new int[]{0};
+			
 //			System.out.println(Arrays.toString(mutPos));
 			Arrays.sort(mutPos);
 			fragseq = mutate(mutPos, fragseq);
@@ -249,22 +259,34 @@ public class Transcript extends RegionVector{
 			
 			int fwstart = startPos + 0;
 			int fwstop = startPos + readLength;
-			Region fwReg = new Region(fwstart,fwstop);
+			Region fwReg;
 			
 			int rwstart = startPos + fraglength-readLength;
 			int rwstop = startPos + fraglength;
-			Region rwReg = new Region(rwstart, rwstop);
+			Region rwReg;
 			
+			String fwread;
+			String rwread;
+			if(!reverse){
+				fwReg = new Region(fwstart,fwstop);
+				
+				rwReg = new Region(rwstart, rwstop);
+			}
+			else{
+				fwReg = new Region(l - fwstop,l -fwstart);
+				
+				rwReg = new Region(l - rwstop , l- rwstart);
+				
+			}
 			
-			
-			String fwread = fragseqString.substring(0, readLength);
+			fwread = fragseqString.substring(0, readLength);
 			
 //			System.out.println("FWRead: "+ fwread + " Length: " + fwread.length());
-			
-			rwread.append(fragseqString.substring(fraglength-readLength));
+		
+			reverseread.append(fragseqString.substring(fraglength-readLength));
 //			System.out.println("RWRead1: "+ rwread + " Length: " + rwread.length());
-			rwread = revComp(rwread);
-			String rwreadString = rwread.toString();
+			reverseread = revComp(reverseread);
+			rwread = reverseread.toString();
 //			System.out.println("RWRead: "+ rwreadString + " Length: " + rwreadString.length());
 			
 			int j = -1;
@@ -281,7 +303,7 @@ public class Transcript extends RegionVector{
 			}
 			
 			j = mutPos.length;
-			while(j > 0 && mutPos[j-1] > fraglength-readLength){
+			while(j > 0 && mutPos[j-1] >= fraglength-readLength){
 				j--;
 			}
 			
@@ -298,7 +320,7 @@ public class Transcript extends RegionVector{
 			
 			ArrayList<Region> fwGene = new ArrayList<Region>();	
 			ArrayList<ExonRegion> fwExons = new ArrayList<ExonRegion>();
-			fwExons = exons.getIntervalsIntersecting(fwstart, fwstop, fwExons);
+			fwExons = exons.getIntervalsIntersecting(fwstart, fwstop-1, fwExons);
 			fwExons.sort(new StartRegionComparator());
 			
 //			System.out.println("fwExons: " + fwExons.toString());
@@ -328,7 +350,7 @@ public class Transcript extends RegionVector{
 			
 			ArrayList<Region> rwGene = new ArrayList<Region>();	
 			ArrayList<ExonRegion> rwExons = new ArrayList<ExonRegion>();
-			rwExons = exons.getIntervalsIntersecting(rwstart, rwstop,rwExons);
+			rwExons = exons.getIntervalsIntersecting(rwstart, rwstop-1,rwExons);
 			rwExons.sort(new StartRegionComparator());
 			if(rwExons.size() > 1){
 				ExonRegion curExon = rwExons.get(0);
@@ -351,10 +373,14 @@ public class Transcript extends RegionVector{
 				rwGene.add(new Region(startExonStart,startExonStop));
 			}
 			
-			results.add(new Fragment(fwread, rwreadString, fwMut, rwMut, fwReg, rwReg, fwGene, rwGene));
-			
+			if(!reverse){
+				results.add(new Fragment(fwread, rwread, fwMut, rwMut, fwReg, rwReg, fwGene, rwGene));
+			}
+			else{
+				results.add(new Fragment(rwread, fwread, rwMut, fwMut, rwReg, fwReg, rwGene, fwGene));
+			}
 			fragseq.setLength(0);
-			rwread.setLength(0);
+			reverseread.setLength(0);
 		}
 		return results;
 	}

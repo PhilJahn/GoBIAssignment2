@@ -175,10 +175,13 @@ public class ReadSimulator {
 		RandomAccessFile fastaAccess = null;
 		Path pathFasta = Paths.get(fastaPath);
 		File fasta = pathFasta.toFile();
-//		System.out.println(order.toString());
 		
+//		System.out.println(order.toString());
+//		order.clear();
+//		order.add("ENSG00000164465|ENST00000368503");
 //		order.remove(1);
 //		System.out.println(order.toString());
+		
 		try {
 			fastaAccess = new RandomAccessFile(fasta, "r");
 			FileWriter fwWriter = new FileWriter(fwfilePath,false);
@@ -209,13 +212,27 @@ public class ReadSimulator {
 			Transcript curTrans = curGene.getTranscript(transid);
 			Index index = curGene.getIndex();
 			
+			
 			int start = curTrans.getStart();
 			int stop = curTrans.getStop();
 			
+//			System.out.println("Trans: ["+ start + "; " + stop + "]");
+			
 			transSeq = getFASTA(start,stop,index,fastaAccess);
+			
+//			System.out.println(curGene.getStrand());
+			
+			transSeq.setLength((stop-start)+1);
+			
+			boolean reverse = curGene.getStrand() == '-';
+			
+//			if(curGene.getStrand() == '-'){
+////				System.out.println("reverse");
+//				transSeq = Transcript.revComp(transSeq);
+//			}
 			transSeq = curTrans.setCDS(transSeq);
 			
-			ArrayList<Fragment> frags = curTrans.makeFragments(readLength, mutRate, mean, sd, n, transSeq);
+			ArrayList<Fragment> frags = curTrans.makeFragments(readLength, mutRate, mean, sd, n, transSeq, reverse);
 			
 			for(Fragment frag: frags){
 				fwBuilder.append(at);
@@ -434,6 +451,7 @@ public class ReadSimulator {
 		        		String gene_id = attr.get("gene_id");
 		        		String trans_id = attr.get("transcript_id");
 		        		String chr = lineSplit[0];
+		        		char strand = lineSplit[6].charAt(0);
 		        		int start = Integer.parseInt(lineSplit[3]);
 		        		int stop = Integer.parseInt(lineSplit[4]);
 		        		Region exon;
@@ -452,7 +470,7 @@ public class ReadSimulator {
 		        		}
 		        		else if(geneIds.contains(gene_id) && trans_id.contains(trans_id)){
 		        			Index index = fastaindex.get(chr);
-		        			Gene gene = new Gene(start,stop,gene_id,chr,index,trans_id);
+		        			Gene gene = new Gene(start,stop,gene_id,chr,strand,index,trans_id);
 		        			geneSet.put(gene_id,gene);
 		        			curGene = gene;
 	        				Transcript trans = new Transcript(start,stop,trans_id);
@@ -472,21 +490,30 @@ public class ReadSimulator {
 	}
 	
 	public StringBuilder getFASTA(int start, int stop, Index index, RandomAccessFile fastaAccess) throws IOException{
-		long fastastart = index.getStart() + start + start/60;
+		long fastastart = index.getStart() + start + start/index.getCont();
 		int fastaLength = stop-start;
 //		System.out.println("Chrom Start: " + index.getStart());
 //		System.out.println("Trans Start: " + start);
+//		System.out.println("Lines: " + start/index.getCont());
+//		
 //		System.out.println("FastaStart: " + fastastart);
 //		
 //		System.out.println("FastaLength: " + fastaLength);
 //		System.out.println("Index Line: " + index.getLine());
 //		System.out.println("Index Cont: " + index.getCont());
-		long modulo = start%index.getLine();
+		long modulo = start%index.getCont();
 //		System.out.println("Modulo: " + modulo);
+		
+		if(modulo == 0){
+			fastastart = fastastart-1;
+		}
 		
 		long lines = ((modulo+ fastaLength)/index.getCont())+1;
 //		System.out.println("Line Count " + lines);
 		fastaAccess.seek(fastastart-1);
+		
+//		System.out.println(fastastart);
+//		System.out.println(fastastart/61);
 		
 		StringBuilder fastaSeq = new StringBuilder();
 		
